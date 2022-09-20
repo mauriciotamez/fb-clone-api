@@ -1,0 +1,14 @@
+{
+  "name": "fb-clone-api",
+  "version": "1.0.0",
+  "description": "A full stack clone of facebook we are going to use another name of course, but it will feature things like chat, videos, friends, posts.",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "author": "Mauricio Tamez",
+  "license": "ISC",
+  "devDependencies": {
+    "prisma": "^4.3.1"
+  }
+}
