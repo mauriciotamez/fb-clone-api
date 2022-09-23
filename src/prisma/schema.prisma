@@ -6,3 +6,19 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Users {
+  // This is the user table, we intend do add posts, photos, relation status
+
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  email          String   @unique
+  name           String
+  password       String
+  status         String   @default("active")
+  birthday       String
+  address        String
+  jobTitle       String?
+  relationStatus String?
+}
