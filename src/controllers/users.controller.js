@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const dotenv = require('dotenv')
+const filterObj = require('../utils/filterObj')
 
 const { AppError } = require('../utils/appError')
 
@@ -11,7 +12,7 @@ const prisma = new PrismaClient()
 
 // ------------------------------------------------------------------------------------------------
 
-exports.createNewUser = async (req, res, next) => {
+const createNewUser = async (req, res, next) => {
   try {
     /* Get the user data from the body */
     const {
@@ -64,7 +65,6 @@ exports.createNewUser = async (req, res, next) => {
       }
     })
 
-    /* Send the response with an 201 HTTP CODE in case of a successful POST request */
     res.status(200).json({
       status: 'success',
       data: { user }
@@ -73,3 +73,37 @@ exports.createNewUser = async (req, res, next) => {
     console.log(error)
   }
 }
+// ------------------------------------------------------------------------------------------------
+
+const updateUser = async (req, res, next) => {
+  try {
+    /* Get the id from the params ex. PATCH > https://localhost:4900/api/v1/users/1 > where 1 is the user ID we want to update */
+    const { id } = req.params
+    const data = filterObj(
+      req.body,
+      'name',
+      'email',
+      'password',
+      'birthday',
+      'address',
+      'jobTitle',
+      'relationStatus'
+    )
+    /* Query our database, the where clause checks for the id and status active */
+    const user = await prisma.users.updateMany({
+      where: { id: Number(id), status: 'active' },
+      data: { ...data }
+    })
+    /* If the user does not exist send a 404 HTTP CODE and a message using our AppError class */
+    if (!user) {
+      return next(new AppError(404, 'Cannot update user, invalid ID.'))
+    }
+
+    res.status(204).json({
+      status: 'success',
+      data: { user }
+    })
+  } catch (error) {}
+}
+
+module.exports = { createNewUser, updateUser }
