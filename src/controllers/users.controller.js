@@ -1,16 +1,12 @@
-const { PrismaClient } = require('@prisma/client')
+const prisma = require('../prisma/prismaClient')
+const { filterObj } = require('../utils/filterObj')
+const { AppError } = require('../utils/appError')
 
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const dotenv = require('dotenv')
-const filterObj = require('../utils/filterObj')
 
-const { AppError } = require('../utils/appError')
-
-/* Instantiate prisma client to make queries to our database */
-const prisma = new PrismaClient()
-
-// ------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------------------
 
 const createNewUser = async (req, res, next) => {
   try {
@@ -73,7 +69,8 @@ const createNewUser = async (req, res, next) => {
     console.log(error)
   }
 }
-// ------------------------------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------------------------------------------------------------
 
 const updateUser = async (req, res, next) => {
   try {
@@ -103,7 +100,33 @@ const updateUser = async (req, res, next) => {
       status: 'success',
       data: { user }
     })
-  } catch (error) {}
+  } catch (error) {
+    console.log(error)
+  }
 }
 
-module.exports = { createNewUser, updateUser }
+// ----------------------------------------------------------------------------------------------------------------------------------
+
+const deleteUser = async (req, res, next) => {
+  try {
+    /* Get the id from the params ex. DELETE > https://localhost:4900/api/v1/users/1 > where 1 is the user ID we want to delete */
+    const { id } = req.params
+    const user = await prisma.users.updateMany({
+      where: { id: Number(id), status: 'active' },
+      data: { status: 'deleted' }
+    })
+
+    if (!user) {
+      return next(new AppError(404, 'Cannot delete user, invalid ID.'))
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'deleted'
+    })
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+module.exports = { createNewUser, updateUser, deleteUser }
