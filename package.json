@@ -11,6 +11,7 @@
   "author": "Mauricio Tamez",
   "license": "ISC",
   "devDependencies": {
+    "@ngneat/falso": "^6.1.0",
     "jest": "^29.0.3",
     "nodemon": "^2.0.20",
     "prisma": "^4.3.1",
