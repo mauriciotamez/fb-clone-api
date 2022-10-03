@@ -22,12 +22,18 @@ const generateRandomPayload = () => {
 }
 
 describe('POST /users', () => {
-  describe('given a name, password, email, birthday and address', () => {
+  describe('given a name, password, email, birthday, address and a profile pic', () => {
     test('should create a user and respond with a 200 status code', async () => {
       const response = await request(app)
         .post('/api/v1/users')
-        .send(generateRandomPayload())
-      expect(response.statusCode).toBe(200)
+        .field('name', randFullName())
+        .field('email', randEmail())
+        .field('password', '123456')
+        .field('birthday', '2000/01/01')
+        .field('address', 'test')
+        .field('jobTitle', 'Full Stack Web Developer')
+        .attach('postImg', 'src/test/Screenshot-20220926170155-246x25.jpg')
+      expect(response.statusCode).toBe(201)
       expect(response.body.data.user).toHaveProperty('name')
       expect(response.body.data.user.password).toBeFalsy()
     })
@@ -37,7 +43,7 @@ describe('POST /users', () => {
     test('should update the user and respond with a 204', async () => {
       const user = await prisma.users.create({ data: generateRandomPayload() })
       const response = await request(app)
-        .patch(`/api/v1/users/${user.id}`)
+        .patch(`/api/v1/users/${user.user_id}`)
         .send({
           name: 'updated data'
         })
@@ -50,7 +56,9 @@ describe('POST /users', () => {
       const user = await prisma.users.create({
         data: generateRandomPayload()
       })
-      const response = await request(app).delete(`/api/v1/users/${user.id}`)
+      const response = await request(app).delete(
+        `/api/v1/users/${user.user_id}`
+      )
       expect(response.statusCode).toBe(200)
     })
   })

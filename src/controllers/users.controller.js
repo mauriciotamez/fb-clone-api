@@ -1,20 +1,25 @@
-const prisma = require('../prisma/prismaClient')
-const { filterObj } = require('../utils/filterObj')
-const { AppError } = require('../utils/appError')
-
+/* 3rd party libraries */
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const dotenv = require('dotenv')
+const { ref, uploadBytes, getDownloadURL } = require('firebase/storage')
+
+/* Utils */
+const { filterObj } = require('../utils/filterObj')
+const { AppError } = require('../utils/appError')
+const prisma = require('../prisma/prismaClient')
+const { storage } = require('../configs/firebase')
 
 // ----------------------------------------------------------------------------------------------------------------------------------
 
-const createNewUser = async (req, res, next) => {
+const createUser = async (req, res, next) => {
   try {
     /* Get the user data from the body */
     const {
       name,
       email,
       password,
+      profile_pic,
       birthday,
       address,
       jobTitle,
@@ -32,10 +37,26 @@ const createNewUser = async (req, res, next) => {
         )
       )
     }
+    /* Query our database to see if we have an email already registered */
+    const isEmailTaken = await prisma.users.findMany({
+      where: { email: email }
+    })
+
+    if (isEmailTaken.length > 0) {
+      return next(new AppError(400, 'Email is already taken.'))
+    }
 
     /* Create a salt using bcrypt to hash our password */
     const salt = await bcrypt.genSalt(12)
     const hashedPassword = await bcrypt.hash(password, salt)
+
+    /* Upload user profile pic to cloud storage (firebase) */
+    const imgRef = ref(
+      storage,
+      `${name}/images/${Date.now()}-${req.file ? req.file.originalname : null}`
+    )
+    const imgUploaded = await uploadBytes(imgRef, req.file.buffer)
+    const imgDownloadUrl = await getDownloadURL(imgRef)
 
     /*  This function gets the fields from the body in a dynamic way in case the user chose to send optional fields */
     const getBodyFields = (obj) => {
@@ -44,24 +65,24 @@ const createNewUser = async (req, res, next) => {
         newObj[el] = obj[el]
       })
       newObj.password = hashedPassword
+      newObj.profile_pic = imgDownloadUrl
       return newObj
     }
-
-    console.log(getBodyFields(req.body))
 
     /* Create a user using our getBodyFields function and passing req.body as the argument */
     const user = await prisma.users.create({
       data: getBodyFields(req.body),
       select: {
-        id: true,
+        user_id: true,
         name: true,
         email: true,
+        profile_pic: true,
         updatedAt: true,
         createdAt: true
       }
     })
 
-    res.status(200).json({
+    res.status(201).json({
       status: 'success',
       data: { user }
     })
@@ -81,6 +102,7 @@ const updateUser = async (req, res, next) => {
       'name',
       'email',
       'password',
+      'profile_pic',
       'birthday',
       'address',
       'jobTitle',
@@ -88,7 +110,7 @@ const updateUser = async (req, res, next) => {
     )
     /* Query our database, the where clause checks for the id and status active */
     const user = await prisma.users.updateMany({
-      where: { id: Number(id), status: 'active' },
+      where: { user_id: Number(id), status: 'active' },
       data: { ...data }
     })
     /* If the user does not exist send a 404 HTTP CODE and a message using our AppError class */
@@ -112,7 +134,7 @@ const deleteUser = async (req, res, next) => {
     /* Get the id from the params ex. DELETE > https://localhost:4900/api/v1/users/1 > where 1 is the user ID we want to delete */
     const { id } = req.params
     const user = await prisma.users.updateMany({
-      where: { id: Number(id), status: 'active' },
+      where: { user_id: Number(id), status: 'active' },
       data: { status: 'deleted' }
     })
 
@@ -129,4 +151,4 @@ const deleteUser = async (req, res, next) => {
   }
 }
 
-module.exports = { createNewUser, updateUser, deleteUser }
+module.exports = { createUser, updateUser, deleteUser }
