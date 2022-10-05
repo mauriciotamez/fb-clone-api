@@ -32,7 +32,7 @@ describe('POST /users', () => {
         .field('birthday', '2000/01/01')
         .field('address', 'test')
         .field('jobTitle', 'Full Stack Web Developer')
-        .attach('postImg', 'src/test/Screenshot-20220926170155-246x25.jpg')
+        .attach('postImg', 'src/test/profile-test-img.jpg')
       expect(response.statusCode).toBe(201)
       expect(response.body.data.user).toHaveProperty('name')
       expect(response.body.data.user.password).toBeFalsy()

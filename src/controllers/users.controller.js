@@ -50,13 +50,28 @@ const createUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(12)
     const hashedPassword = await bcrypt.hash(password, salt)
 
-    /* Upload user profile pic to cloud storage (firebase) */
-    const imgRef = ref(
-      storage,
-      `${name}/images/${Date.now()}-${req.file ? req.file.originalname : null}`
-    )
-    const imgUploaded = await uploadBytes(imgRef, req.file.buffer)
-    const imgDownloadUrl = await getDownloadURL(imgRef)
+    /* We had to make this flow to make the integration test for uploading the image
+       to save the "test" image to another folder in our firebase storage, we do not
+       want to mix testing data with "real" data.
+    */
+
+    let imgDownloadUrl
+
+    if (req.file.originalname.includes('test')) {
+      const imgRefTest = ref(
+        storage,
+        `testing/${name}/images/${Date.now()}-${req.file.originalname}`
+      )
+      const imgUploaded = await uploadBytes(imgRefTest, req.file.buffer)
+      imgDownloadUrl = await getDownloadURL(imgRefTest)
+    } else {
+      const imgRef = ref(
+        storage,
+        `main/${name}/images/${Date.now()}-${req.file.originalname}`
+      )
+      const imgUploaded = await uploadBytes(imgRef, req.file.buffer)
+      imgDownloadUrl = await getDownloadURL(imgRef)
+    }
 
     /*  This function gets the fields from the body in a dynamic way in case the user chose to send optional fields */
     const getBodyFields = (obj) => {
